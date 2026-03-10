@@ -79,9 +79,9 @@
   }
 
   button {
-    width: 100%;
-    height: 36px;
-    font-size: 0.9em;
+    width: 66.66666666666667%;
+    height: 41px;
+    font-size: 1.5em;
     cursor: pointer;
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -108,7 +108,7 @@
   input[type="number"] {
     width: 100%;
     text-align: center;
-    font-size: 1.4em;
+    font-size: 1.5em;
     font-weight: 600;
     padding: 8px;
     border: 2px solid var(--border);
@@ -141,7 +141,7 @@
   }
 
   .speed {
-    font-size: 0.85em;
+    font-size: 0.825em;
     font-weight: 600;
     color: var(--text);
   }
