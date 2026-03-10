@@ -23,12 +23,5 @@ export default defineManifest({
     service_worker: "src/background/main.ts",
     type: "module",
   },
-  permissions: ["storage", "activeTab"],
-  content_scripts: [
-    {
-      matches: ["*://*/*"],
-      js: ["src/content/bridge.ts"],
-      run_at: "document_start",
-    },
-  ],
+  permissions: ["storage", "activeTab", "scripting"],
 });

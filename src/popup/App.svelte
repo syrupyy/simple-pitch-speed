@@ -1,11 +1,45 @@
 <script lang="ts">
   import { getStoredSemitones, getTabKey } from "@/shared/extension";
+  import mainScript from "@/content/main.ts?script&module";
 
   let value = $state(0);
   let tabId = $state<number | undefined>();
   let status = $state("");
+  let isWebPage = false;
 
   let speed = $derived((2 ** (value / 12)).toFixed(2));
+
+  const mainScriptUrl = chrome.runtime.getURL(mainScript);
+
+  /** Inject main.ts into the page world (idempotent via data-sps guard). */
+  async function ensureInjected(id: number) {
+    await chrome.scripting.executeScript({
+      target: { tabId: id },
+      func: (url: string) => {
+        if (document.querySelector("script[data-sps]")) return;
+        const s = document.createElement("script");
+        s.src = url;
+        s.type = "module";
+        s.dataset.sps = "";
+        (document.documentElement || document.head || document.body).prepend(s);
+      },
+      args: [mainScriptUrl],
+    });
+  }
+
+  /** Dispatch semitones to the page world. Event name must match pageEvent.setSemitones. */
+  async function sendSemitones(id: number, semitones: number) {
+    await chrome.scripting.executeScript({
+      target: { tabId: id },
+      world: "MAIN",
+      func: (s: number) => {
+        window.dispatchEvent(
+          new CustomEvent("sps-set-semitones", { detail: { semitones: s } }),
+        );
+      },
+      args: [semitones],
+    });
+  }
 
   // Bootstrap popup state from the active tab.
   async function init() {
@@ -19,15 +53,31 @@
       const result = await chrome.storage.session.get(tabKey);
       value = getStoredSemitones(result[tabKey]);
     }
-    const isWebPage =
-      tab?.url?.startsWith("http://") || tab?.url?.startsWith("https://");
+    isWebPage =
+      tab?.url?.startsWith("http://") || tab?.url?.startsWith("https://") || false;
     status = isWebPage ? "Active" : "Not a web page";
+
+    if (isWebPage && tabId !== undefined) {
+      // Pre-set initial semitones for main.ts to pick up before its listener is ready.
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        world: "MAIN",
+        func: (s: number) => {
+          (window as Record<string, unknown>).__sps_initial = s;
+        },
+        args: [value],
+      });
+      await ensureInjected(tabId);
+    }
   }
 
-  // Persist the value and let the background relay update the page.
+  // Persist the value and relay to the page.
   async function save() {
     if (tabId !== undefined) {
       await chrome.storage.session.set({ [getTabKey(tabId)]: value });
+      if (isWebPage) {
+        await sendSemitones(tabId, value);
+      }
     }
   }
 

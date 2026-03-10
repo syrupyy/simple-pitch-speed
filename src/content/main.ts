@@ -1,6 +1,12 @@
 import { pageEvent, type SetSemitonesDetail } from "@/shared/extension";
 import { createLogger } from "@/shared/log";
 
+// Prevent double-initialization (popup may re-inject on each open).
+if ((window as unknown as Record<string, unknown>).__sps_initialized) {
+  throw new Error("SPS already initialized");
+}
+(window as unknown as Record<string, unknown>).__sps_initialized = true;
+
 const log = createLogger("SPS main");
 log("main.ts loaded in MAIN world");
 
@@ -180,5 +186,11 @@ window.addEventListener(pageEvent.setSemitones, ((
   applyToAll();
 }) as EventListener);
 
-log("dispatching sps-ready");
-window.dispatchEvent(new CustomEvent(pageEvent.ready));
+// Pick up initial semitones pre-set by the popup before this module loaded.
+const initial = (window as unknown as Record<string, unknown>).__sps_initial;
+if (typeof initial === "number" && initial !== 0) {
+  log("applying pre-set initial semitones:", initial);
+  semitones = initial;
+  delete (window as unknown as Record<string, unknown>).__sps_initial;
+  applyToAll();
+}
