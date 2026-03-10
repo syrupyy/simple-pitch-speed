@@ -5,6 +5,7 @@ import { defineConfig } from "vite";
 import zip from "vite-plugin-zip-pack";
 import manifest from "./manifest.config";
 import { name, version } from "./package.json";
+import eslint from "vite-plugin-eslint2";
 
 export default defineConfig({
   resolve: {
@@ -18,6 +19,7 @@ export default defineConfig({
         dev: true,
       },
     }),
+    eslint(),
     crx({ manifest }),
     zip({ outDir: "release", outFileName: `crx-${name}-${version}.zip` }),
   ],
