@@ -18,6 +18,8 @@
   async function save() {
     if (tabId !== undefined) {
       await chrome.storage.session.set({ [`tab-${tabId}`]: value });
+      // Send directly to the content script for live updates
+      chrome.tabs.sendMessage(tabId, { type: 'set-semitones', semitones: value }).catch(() => {});
     }
   }
 

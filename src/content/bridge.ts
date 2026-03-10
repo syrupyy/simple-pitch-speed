@@ -28,7 +28,6 @@ if (document.documentElement) {
   obs.observe(document, { childList: true });
 }
 
-let tabKey: string | undefined;
 let mainReady = false;
 let pendingSemitones: number | null = null;
 
@@ -55,21 +54,20 @@ window.addEventListener('sps-ready', () => {
   }
 });
 
-// Get initial state + tab key from background
+// Get initial state from background
 chrome.runtime.sendMessage({ type: 'get-semitones' }).then((response) => {
   console.log(PREFIX, 'got response from background:', response);
   if (response) {
-    tabKey = response.tabKey;
     dispatch(response.semitones);
   }
 }).catch((err) => {
   console.error(PREFIX, 'failed to send message to background:', err);
 });
 
-// Listen for storage changes from popup (no messaging needed)
-chrome.storage.session.onChanged.addListener((changes) => {
-  console.log(PREFIX, 'storage changed:', changes, 'tabKey:', tabKey);
-  if (tabKey && changes[tabKey]) {
-    dispatch((changes[tabKey].newValue as number) ?? 0);
+// Listen for semitone updates forwarded from the background script
+chrome.runtime.onMessage.addListener((message) => {
+  console.log(PREFIX, 'received message:', message);
+  if (message.type === 'set-semitones') {
+    dispatch(message.semitones);
   }
 });
