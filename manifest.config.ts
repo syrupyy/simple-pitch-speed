@@ -24,7 +24,7 @@ export default defineManifest({
   ],
   content_scripts: [
     {
-      matches: ['*://youtube.com/*', '*://*.youtube.com/*'],
+      matches: ['*://*/*'],
       js: ['src/content/bridge.ts'],
       run_at: 'document_start',
     },

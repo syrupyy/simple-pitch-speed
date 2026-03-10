@@ -13,6 +13,15 @@ const nativePlaybackRate = Object.getOwnPropertyDescriptor(proto, 'playbackRate'
 const nativePreservesPitch = Object.getOwnPropertyDescriptor(proto, 'preservesPitch');
 const nativeWebkitPreservesPitch = Object.getOwnPropertyDescriptor(proto, 'webkitPreservesPitch' as keyof HTMLMediaElement);
 
+const NativeAudio = window.Audio;
+window.Audio = function (src?: string) {
+  const audio = new NativeAudio(src);
+  watchElement(audio);
+  return audio;
+} as unknown as typeof Audio;
+window.Audio.prototype = NativeAudio.prototype;
+Object.defineProperty(window.Audio, 'length', { value: NativeAudio.length });
+
 function multiplier() {
   return 2 ** (semitones / 12);
 }

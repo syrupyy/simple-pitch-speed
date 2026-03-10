@@ -12,7 +12,8 @@
       const result = await chrome.storage.session.get(`tab-${tabId}`);
       value = result[`tab-${tabId}`] ?? 0;
     }
-    status = tab?.url?.includes('youtube.com') ? 'Active' : 'Not on YouTube';
+    const isWebPage = tab?.url?.startsWith('http://') || tab?.url?.startsWith('https://');
+    status = isWebPage ? 'Active' : 'Not a web page';
   }
 
   async function save() {
