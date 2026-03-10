@@ -13,7 +13,7 @@
     tabId = tab?.id;
     if (tabId !== undefined) {
       const result = await chrome.storage.session.get(`tab-${tabId}`);
-      value = result[`tab-${tabId}`] ?? 0;
+      value = (result[`tab-${tabId}`] as number) ?? 0;
     }
     const isWebPage =
       tab?.url?.startsWith("http://") || tab?.url?.startsWith("https://");
@@ -113,6 +113,7 @@
     color: var(--text);
     outline: none;
     transition: border-color 0.15s;
+    appearance: textfield;
     -moz-appearance: textfield;
   }
 
