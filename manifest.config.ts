@@ -1,32 +1,29 @@
-import { defineManifest } from '@crxjs/vite-plugin'
-import pkg from './package.json'
+import { defineManifest } from "@crxjs/vite-plugin";
+import pkg from "./package.json";
 
 export default defineManifest({
   manifest_version: 3,
   name: pkg.name,
   version: pkg.version,
   icons: {
-    48: 'public/logo.png',
+    48: "public/logo.png",
   },
   action: {
     default_icon: {
-      48: 'public/logo.png',
+      48: "public/logo.png",
     },
-    default_popup: 'src/popup/index.html',
+    default_popup: "src/popup/index.html",
   },
   background: {
-    service_worker: 'src/background/main.ts',
-    type: 'module',
+    service_worker: "src/background/main.ts",
+    type: "module",
   },
-  permissions: [
-    'storage',
-    'activeTab',
-  ],
+  permissions: ["storage", "activeTab"],
   content_scripts: [
     {
-      matches: ['*://*/*'],
-      js: ['src/content/bridge.ts'],
-      run_at: 'document_start',
+      matches: ["*://*/*"],
+      js: ["src/content/bridge.ts"],
+      run_at: "document_start",
     },
   ],
-})
+});

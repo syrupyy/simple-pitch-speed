@@ -1,26 +1,32 @@
 <script lang="ts">
   let value = $state(0);
   let tabId = $state<number | undefined>();
-  let status = $state('');
+  let status = $state("");
 
   let speed = $derived((2 ** (value / 12)).toFixed(2));
 
   async function init() {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
     tabId = tab?.id;
     if (tabId !== undefined) {
       const result = await chrome.storage.session.get(`tab-${tabId}`);
       value = result[`tab-${tabId}`] ?? 0;
     }
-    const isWebPage = tab?.url?.startsWith('http://') || tab?.url?.startsWith('https://');
-    status = isWebPage ? 'Active' : 'Not a web page';
+    const isWebPage =
+      tab?.url?.startsWith("http://") || tab?.url?.startsWith("https://");
+    status = isWebPage ? "Active" : "Not a web page";
   }
 
   async function save() {
     if (tabId !== undefined) {
       await chrome.storage.session.set({ [`tab-${tabId}`]: value });
       // Send directly to the content script for live updates
-      chrome.tabs.sendMessage(tabId, { type: 'set-semitones', semitones: value }).catch(() => {});
+      chrome.tabs
+        .sendMessage(tabId, { type: "set-semitones", semitones: value })
+        .catch(() => {});
     }
   }
 
@@ -77,7 +83,9 @@
     background: var(--surface);
     color: var(--accent);
     font-weight: 600;
-    transition: background 0.15s, border-color 0.15s;
+    transition:
+      background 0.15s,
+      border-color 0.15s;
   }
 
   button:hover {
