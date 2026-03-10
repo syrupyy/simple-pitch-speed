@@ -1,7 +1,7 @@
-// MAIN world content script — zero imports (CRXJS requirement)
+import { createLogger } from "@/shared/log";
 
-const PREFIX = "[SPS main]";
-console.log(PREFIX, "main.ts loaded in MAIN world");
+const log = createLogger("SPS main");
+log("main.ts loaded in MAIN world");
 
 let semitones = 0;
 const rateMap = new WeakMap<HTMLMediaElement, number>();
@@ -40,15 +40,7 @@ function applyRate(el: HTMLMediaElement) {
     rateMap.set(el, nativePlaybackRate.get!.call(el));
   }
   const base = rateMap.get(el)!;
-  console.log(
-    PREFIX,
-    "applyRate:",
-    el.tagName,
-    "base:",
-    base,
-    "multiplier:",
-    multiplier(),
-  );
+  log("applyRate:", el.tagName, "base:", base, "multiplier:", multiplier());
   nativePlaybackRate.set!.call(el, base * multiplier());
   if (semitones !== 0) {
     nativePreservesPitch?.set?.call(el, false);
@@ -68,17 +60,17 @@ function applyToAll() {
 function watchElement(el: HTMLMediaElement) {
   if (listenedElements.has(el)) return;
   listenedElements.add(el);
-  console.log(PREFIX, "watching element:", el.tagName);
+  log("watching element:", el.tagName);
 
   const onPlay = () => {
-    console.log(PREFIX, "play event on", el.tagName, "— semitones:", semitones);
+    log("play event on", el.tagName, "- semitones:", semitones);
     if (semitones !== 0) applyRate(el);
   };
   el.addEventListener("play", onPlay);
 
   // If already playing, apply immediately
   if (!el.paused && semitones !== 0) {
-    console.log(PREFIX, "element already playing, applying immediately");
+    log("element already playing, applying immediately");
     applyRate(el);
   }
 }
@@ -88,14 +80,14 @@ new MutationObserver((mutations) => {
   for (const m of mutations) {
     for (const node of m.addedNodes) {
       if (node instanceof HTMLMediaElement) {
-        console.log(PREFIX, "new media element added:", node.tagName);
+        log("new media element added:", node.tagName);
         watchElement(node);
       }
       if (node instanceof Element) {
         node
           .querySelectorAll<HTMLMediaElement>("video, audio")
           .forEach((el) => {
-            console.log(PREFIX, "new nested media element found:", el.tagName);
+            log("new nested media element found:", el.tagName);
             watchElement(el);
           });
       }
@@ -168,10 +160,10 @@ if (nativeWebkitPreservesPitch) {
 window.addEventListener("sps-set-semitones", ((
   e: CustomEvent<{ semitones: number }>,
 ) => {
-  console.log(PREFIX, "received sps-set-semitones:", e.detail.semitones);
+  log("received sps-set-semitones:", e.detail.semitones);
   semitones = e.detail.semitones;
   applyToAll();
 }) as EventListener);
 
-console.log(PREFIX, "dispatching sps-ready");
+log("dispatching sps-ready");
 window.dispatchEvent(new CustomEvent("sps-ready"));
