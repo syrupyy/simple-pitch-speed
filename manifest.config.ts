@@ -22,4 +22,11 @@ export default defineManifest({
     'storage',
     'activeTab',
   ],
+  content_scripts: [
+    {
+      matches: ['*://youtube.com/*', '*://*.youtube.com/*'],
+      js: ['src/content/bridge.ts'],
+      run_at: 'document_start',
+    },
+  ],
 })

@@ -1,6 +1,9 @@
 <script lang="ts">
   let value = $state(0);
   let tabId = $state<number | undefined>();
+  let status = $state('');
+
+  let speed = $derived((2 ** (value / 12)).toFixed(2));
 
   async function init() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -9,6 +12,7 @@
       const result = await chrome.storage.session.get(`tab-${tabId}`);
       value = result[`tab-${tabId}`] ?? 0;
     }
+    status = tab?.url?.includes('youtube.com') ? 'Active' : 'Not on YouTube';
   }
 
   async function save() {
@@ -43,6 +47,12 @@
   <button onclick={increment}>&#9650;</button>
   <input type="number" bind:value oninput={onInput} min="-48" max="48" />
   <button onclick={decrement}>&#9660;</button>
+</div>
+<div class="info">
+  <span class="speed">{speed}x</span>
+  {#if status}
+    <span class="status">{status}</span>
+  {/if}
 </div>
 
 <style>
@@ -103,5 +113,24 @@
   input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
+  }
+
+  .info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 0 20px 12px;
+  }
+
+  .speed {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .status {
+    font-size: 0.75em;
+    color: var(--text-muted);
   }
 </style>
