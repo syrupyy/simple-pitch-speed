@@ -1,52 +1,48 @@
-# Svelte + Vite + CRXJS
+# Simple Pitch/Speed Changer
 
-This template helps you quickly start developing Chrome extensions with Svelte, TypeScript and Vite. It includes the CRXJS Vite plugin for seamless Chrome extension development.
+![Simple Pitch/Speed Changer icon](/public/icon128.png)
 
-## Features
+Simple Pitch/Speed Changer is a Manifest V3 browser extension that shifts media pitch by semitones. The popup stores a per-tab semitone value, the background worker relays updates, and the injected page script applies the matching playback-rate multiplier to `audio` and `video` elements.
 
-- Svelte with component syntax
-- TypeScript support
-- Vite build tool
-- CRXJS Vite plugin integration
-- Chrome extension manifest configuration
+## Development
 
-## Quick Start
-
-1. Install dependencies:
+Install dependencies with:
 
 ```bash
-npm install
+pnpm install
 ```
 
-2. Start development server:
+Start the extension build in watch mode with:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
-3. Open Chrome and navigate to `chrome://extensions/`, enable "Developer mode", and load the unpacked extension from the `dist` directory.
-
-4. Build for production:
+Create a production build with:
 
 ```bash
-npm run build
+pnpm build
 ```
+
+Lint the project with:
+
+```bash
+pnpm lint
+```
+
+To load the extension, open `chrome://extensions/`, enable developer mode, and load the unpacked `dist/` directory.
 
 ## Project Structure
 
-- `src/popup/` - Extension popup UI
-- `src/content/` - Content scripts
-- `manifest.config.ts` - Chrome extension manifest configuration
+- `src/popup/` contains the Svelte popup UI used to adjust the semitone shift for the active tab.
+- `src/background/main.ts` listens for tab-scoped storage changes and forwards updates to the content bridge.
+- `src/content/bridge.ts` runs in the extension world, injects the page script, and bridges runtime messages into page events.
+- `src/content/main.ts` runs in the page context and patches media elements so pitch shifting applies to current and future playback.
+- `src/shared/` contains small helpers shared across runtimes.
+- `manifest.config.ts` defines the extension manifest for CRXJS/Vite.
 
-## Chrome Extension Development Notes
+## Notes
 
-- Use `manifest.config.ts` to configure your extension
-- The CRXJS plugin automatically handles manifest generation
-- Content scripts should be placed in `src/content/`
-- Popup UI should be placed in `src/popup/`
-
-## Documentation
-
-- [Svelte Documentation](https://svelte.dev/)
-- [Vite Documentation](https://vitejs.dev/)
-- [CRXJS Documentation](https://crxjs.dev/vite-plugin)
+- Semitone values are stored in `chrome.storage.session` under a per-tab key.
+- The popup only writes state; the background worker owns relaying updates into the page.
+- The page script keeps each media element's original playback rate and multiplies it by `2 ** (semitones / 12)`.
