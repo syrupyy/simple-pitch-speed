@@ -1,10 +1,13 @@
 <script lang="ts">
+  import { getStoredSemitones, getTabKey } from "@/shared/extension";
+
   let value = $state(0);
   let tabId = $state<number | undefined>();
   let status = $state("");
 
   let speed = $derived((2 ** (value / 12)).toFixed(2));
 
+  // Bootstrap popup state from the active tab.
   async function init() {
     const [tab] = await chrome.tabs.query({
       active: true,
@@ -12,21 +15,19 @@
     });
     tabId = tab?.id;
     if (tabId !== undefined) {
-      const result = await chrome.storage.session.get(`tab-${tabId}`);
-      value = (result[`tab-${tabId}`] as number) ?? 0;
+      const tabKey = getTabKey(tabId);
+      const result = await chrome.storage.session.get(tabKey);
+      value = getStoredSemitones(result[tabKey]);
     }
     const isWebPage =
       tab?.url?.startsWith("http://") || tab?.url?.startsWith("https://");
     status = isWebPage ? "Active" : "Not a web page";
   }
 
+  // Persist the value and let the background relay update the page.
   async function save() {
     if (tabId !== undefined) {
-      await chrome.storage.session.set({ [`tab-${tabId}`]: value });
-      // Send directly to the content script for live updates
-      chrome.tabs
-        .sendMessage(tabId, { type: "set-semitones", semitones: value })
-        .catch(() => {});
+      await chrome.storage.session.set({ [getTabKey(tabId)]: value });
     }
   }
 
@@ -65,6 +66,10 @@
 </div>
 
 <style>
+  * {
+    box-sizing: border-box;
+  }
+
   .controls {
     display: flex;
     flex-direction: column;
@@ -102,7 +107,6 @@
 
   input[type="number"] {
     width: 100%;
-    box-sizing: border-box;
     text-align: center;
     font-size: 1.4em;
     font-weight: 600;
@@ -113,8 +117,8 @@
     color: var(--text);
     outline: none;
     transition: border-color 0.15s;
-    appearance: textfield;
     -moz-appearance: textfield;
+    appearance: textfield;
   }
 
   input[type="number"]:focus {
@@ -124,6 +128,7 @@
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
+    appearance: none;
     margin: 0;
   }
 

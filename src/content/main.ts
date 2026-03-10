@@ -1,8 +1,10 @@
+import { pageEvent, type SetSemitonesDetail } from "@/shared/extension";
 import { createLogger } from "@/shared/log";
 
 const log = createLogger("SPS main");
 log("main.ts loaded in MAIN world");
 
+// Track the user-selected shift and each element's original playbackRate.
 let semitones = 0;
 const rateMap = new WeakMap<HTMLMediaElement, number>();
 const listenedElements = new WeakSet<HTMLMediaElement>();
@@ -35,6 +37,35 @@ function multiplier() {
   return 2 ** (semitones / 12);
 }
 
+function shouldForcePreservesPitch() {
+  return semitones !== 0;
+}
+
+function syncPitchPreservation(el: HTMLMediaElement) {
+  if (!shouldForcePreservesPitch()) {
+    return;
+  }
+
+  nativePreservesPitch?.set?.call(el, false);
+  nativeWebkitPreservesPitch?.set?.call(el, false);
+}
+
+function setPitchProperty(
+  descriptor: PropertyDescriptor | undefined,
+  el: HTMLMediaElement,
+  value: boolean,
+) {
+  descriptor?.set?.call(el, shouldForcePreservesPitch() ? false : value);
+}
+
+function getPitchProperty(
+  descriptor: PropertyDescriptor | undefined,
+  el: HTMLMediaElement,
+) {
+  return shouldForcePreservesPitch() ? false : descriptor?.get?.call(el);
+}
+
+// Apply the transposed playbackRate while preserving each element's base speed.
 function applyRate(el: HTMLMediaElement) {
   if (!rateMap.has(el)) {
     rateMap.set(el, nativePlaybackRate.get!.call(el));
@@ -42,10 +73,7 @@ function applyRate(el: HTMLMediaElement) {
   const base = rateMap.get(el)!;
   log("applyRate:", el.tagName, "base:", base, "multiplier:", multiplier());
   nativePlaybackRate.set!.call(el, base * multiplier());
-  if (semitones !== 0) {
-    nativePreservesPitch?.set?.call(el, false);
-    nativeWebkitPreservesPitch?.set?.call(el, false);
-  }
+  syncPitchPreservation(el);
 }
 
 function applyToAll() {
@@ -56,7 +84,7 @@ function applyToAll() {
   });
 }
 
-// Listen for play event on a media element so we apply rate when playback starts
+// Watch current and future media elements so playback changes stay in sync.
 function watchElement(el: HTMLMediaElement) {
   if (listenedElements.has(el)) return;
   listenedElements.add(el);
@@ -75,7 +103,7 @@ function watchElement(el: HTMLMediaElement) {
   }
 }
 
-// Watch for new media elements added to the DOM
+// Watch for new media elements added to the DOM.
 new MutationObserver((mutations) => {
   for (const m of mutations) {
     for (const node of m.addedNodes) {
@@ -95,20 +123,17 @@ new MutationObserver((mutations) => {
   }
 }).observe(document.documentElement, { childList: true, subtree: true });
 
-// Also watch any elements already in the DOM
+// Also watch any elements already in the DOM.
 document
   .querySelectorAll<HTMLMediaElement>("video, audio")
   .forEach(watchElement);
 
-// Override playbackRate setter/getter
+// Patch media properties so page scripts still see the unshifted base rate.
 Object.defineProperty(proto, "playbackRate", {
   set(value: number) {
     rateMap.set(this, value);
     nativePlaybackRate.set!.call(this, value * multiplier());
-    if (semitones !== 0) {
-      nativePreservesPitch?.set?.call(this, false);
-      nativeWebkitPreservesPitch?.set?.call(this, false);
-    }
+    syncPitchPreservation(this);
   },
   get() {
     return rateMap.get(this) ?? nativePlaybackRate.get!.call(this);
@@ -120,15 +145,10 @@ Object.defineProperty(proto, "playbackRate", {
 if (nativePreservesPitch) {
   Object.defineProperty(proto, "preservesPitch", {
     set(value: boolean) {
-      if (semitones === 0) {
-        nativePreservesPitch.set!.call(this, value);
-      } else {
-        nativePreservesPitch.set!.call(this, false);
-      }
+      setPitchProperty(nativePreservesPitch, this, value);
     },
     get() {
-      if (semitones === 0) return nativePreservesPitch.get!.call(this);
-      return false;
+      return getPitchProperty(nativePreservesPitch, this);
     },
     configurable: true,
     enumerable: true,
@@ -141,15 +161,10 @@ if (nativeWebkitPreservesPitch) {
     "webkitPreservesPitch" as keyof HTMLMediaElement,
     {
       set(value: boolean) {
-        if (semitones === 0) {
-          nativeWebkitPreservesPitch.set!.call(this, value);
-        } else {
-          nativeWebkitPreservesPitch.set!.call(this, false);
-        }
+        setPitchProperty(nativeWebkitPreservesPitch, this, value);
       },
       get() {
-        if (semitones === 0) return nativeWebkitPreservesPitch.get!.call(this);
-        return false;
+        return getPitchProperty(nativeWebkitPreservesPitch, this);
       },
       configurable: true,
       enumerable: true,
@@ -157,8 +172,8 @@ if (nativeWebkitPreservesPitch) {
   );
 }
 
-window.addEventListener("sps-set-semitones", ((
-  e: CustomEvent<{ semitones: number }>,
+window.addEventListener(pageEvent.setSemitones, ((
+  e: CustomEvent<SetSemitonesDetail>,
 ) => {
   log("received sps-set-semitones:", e.detail.semitones);
   semitones = e.detail.semitones;
@@ -166,4 +181,4 @@ window.addEventListener("sps-set-semitones", ((
 }) as EventListener);
 
 log("dispatching sps-ready");
-window.dispatchEvent(new CustomEvent("sps-ready"));
+window.dispatchEvent(new CustomEvent(pageEvent.ready));

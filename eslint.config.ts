@@ -1,11 +1,11 @@
-import { defineConfig, globalIgnores } from "eslint/config";
 import prettierConfig from "eslint-config-prettier/flat";
 import sveltePlugin from "eslint-plugin-svelte";
+import { defineConfig, globalIgnores } from "eslint/config";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default defineConfig([
-  globalIgnores(["dist/", "release/", "transpose-pitch-speed-loop/"]),
+  globalIgnores(["dist/", "release/"]),
   tseslint.configs.recommended,
   sveltePlugin.configs["flat/recommended"],
   {

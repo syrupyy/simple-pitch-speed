@@ -23,5 +23,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-transpose-pitch-speed-loop/
